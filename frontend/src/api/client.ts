@@ -154,8 +154,11 @@ export const fetchAccounts = (params?: {
   owner?: string
 }) => api.get<AccountSummary[]>('/accounts', { params }).then((r) => r.data)
 
-export const fetchAccount = (id: string, withAi = false) =>
-  api.get<AccountDetail>(`/accounts/${id}`, { params: { with_ai: withAi } }).then((r) => r.data)
+export const fetchAccount = (id: string) =>
+  api.get<AccountDetail>(`/accounts/${id}`).then((r) => r.data)
+
+export const fetchAccountAnalysis = (id: string, refresh = false) =>
+  api.get<AIAnalysis>(`/accounts/${id}/analysis`, { params: { refresh } }).then((r) => r.data)
 
 export const fetchPortfolioSummary = (withAi = false) =>
   api.get<PortfolioSummary>('/portfolio/summary', { params: { with_ai: withAi } }).then((r) => r.data)

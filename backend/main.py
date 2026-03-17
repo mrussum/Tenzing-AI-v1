@@ -19,6 +19,7 @@ from data_loader import load_accounts
 from models import (
     AccountDetail,
     AccountSummary,
+    AIAnalysis,
     Decision,
     DecisionCreate,
     LoginRequest,
@@ -37,7 +38,8 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 _accounts: list[dict] = []
-_decisions: dict[str, list[dict]] = {}  # account_id → list of decision dicts
+_decisions: dict[str, list[dict]] = {}          # account_id → list of decision dicts
+_ai_cache: dict[str, AIAnalysis] = {}           # account_id → cached AI analysis
 _portfolio_briefing_cache: Optional[str] = None
 _portfolio_briefing_time: Optional[datetime] = None
 
@@ -95,21 +97,16 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    token = create_access_token({"sub": user["username"]})
-    return TokenResponse(access_token=token)
+    return TokenResponse(access_token=create_access_token({"sub": user["username"]}))
 
 
 @app.post("/auth/login/json", response_model=TokenResponse)
 async def login_json(body: LoginRequest):
-    """JSON-body alternative to the form-based /auth/login (for frontend fetch)."""
+    """JSON-body login for the React frontend."""
     user = authenticate_user(body.username, body.password)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-        )
-    token = create_access_token({"sub": user["username"]})
-    return TokenResponse(access_token=token)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect username or password")
+    return TokenResponse(access_token=create_access_token({"sub": user["username"]}))
 
 
 # ---------------------------------------------------------------------------
@@ -124,9 +121,7 @@ async def list_accounts(
     owner: Optional[str] = None,
     current_user: str = Depends(get_current_user),
 ):
-    """Return all accounts sorted by priority. Supports optional filter params."""
     results = _accounts
-
     if region:
         results = [a for a in results if (a.get("region") or "").lower() == region.lower()]
     if segment:
@@ -139,30 +134,42 @@ async def list_accounts(
             if (a.get("account_owner") or "").lower() == owner.lower()
             or (a.get("csm_owner") or "").lower() == owner.lower()
         ]
-
     return [AccountSummary(**{k: a.get(k) for k in AccountSummary.model_fields}) for a in results]
 
 
 @app.get("/accounts/{account_id}", response_model=AccountDetail)
 async def get_account(
     account_id: str,
-    with_ai: bool = False,
     current_user: str = Depends(get_current_user),
 ):
-    """Return full account detail. Pass ?with_ai=true to include AI analysis."""
+    """Full account detail. AI analysis is fetched separately via /accounts/{id}/analysis."""
     acc = _get_account_or_404(account_id)
     detail = acc.copy()
-
-    # Attach decisions
-    detail["decisions"] = [
-        Decision(**d) for d in _decisions.get(account_id, [])
-    ]
-
-    if with_ai:
-        ai = analyse_account(acc)
-        detail["ai_analysis"] = ai
-
+    detail["decisions"] = [Decision(**d) for d in _decisions.get(account_id, [])]
+    detail["ai_analysis"] = _ai_cache.get(account_id)
     return AccountDetail(**{k: detail.get(k) for k in AccountDetail.model_fields})
+
+
+@app.get("/accounts/{account_id}/analysis", response_model=AIAnalysis)
+async def get_account_analysis(
+    account_id: str,
+    refresh: bool = False,
+    current_user: str = Depends(get_current_user),
+):
+    """
+    Fetch (or generate) AI analysis for a single account.
+    Results are cached in memory for the lifetime of the server process.
+    Pass ?refresh=true to force a fresh Claude call (e.g. after adding notes).
+    """
+    acc = _get_account_or_404(account_id)
+
+    if account_id in _ai_cache and not refresh:
+        return _ai_cache[account_id]
+
+    logger.info("Generating AI analysis for %s", account_id)
+    analysis = analyse_account(acc)
+    _ai_cache[account_id] = analysis
+    return analysis
 
 
 # ---------------------------------------------------------------------------
@@ -174,46 +181,38 @@ async def portfolio_summary(
     with_ai: bool = False,
     current_user: str = Depends(get_current_user),
 ):
-    """Return KPIs + optional AI leadership briefing."""
     global _portfolio_briefing_cache, _portfolio_briefing_time
 
     active = [a for a in _accounts if (a.get("account_status") or "").lower() != "paused"]
-    total_arr = sum(a.get("arr_gbp") or 0 for a in active)
-    at_risk = sum(1 for a in active if (a.get("risk_score") or 0) > 50)
-    expansion = sum(1 for a in active if (a.get("opportunity_score") or 0) > 50)
-    avg_health = (
-        sum(a.get("health_score") or 0 for a in active) / len(active)
-        if active else 0
-    )
+    total_arr  = sum(a.get("arr_gbp") or 0 for a in active)
+    at_risk    = sum(1 for a in active if (a.get("risk_score") or 0) > 50)
+    expansion  = sum(1 for a in active if (a.get("opportunity_score") or 0) > 50)
+    avg_health = sum(a.get("health_score") or 0 for a in active) / len(active) if active else 0
 
-    priority_counts = {"Critical": 0, "High": 0, "Medium": 0, "Low": 0, "Paused": 0}
+    p_counts: dict[str, int] = {"Critical": 0, "High": 0, "Medium": 0, "Low": 0, "Paused": 0}
     for a in _accounts:
         p = a.get("priority", "Low")
-        if p in priority_counts:
-            priority_counts[p] += 1
+        if p in p_counts:
+            p_counts[p] += 1
 
     kpis = PortfolioKPIs(
         total_arr_gbp=round(total_arr, 2),
         accounts_at_risk=at_risk,
         expansion_opportunities=expansion,
         avg_health_score=round(avg_health, 1),
-        critical_count=priority_counts["Critical"],
-        high_count=priority_counts["High"],
-        medium_count=priority_counts["Medium"],
-        low_count=priority_counts["Low"],
-        paused_count=priority_counts["Paused"],
+        critical_count=p_counts["Critical"],
+        high_count=p_counts["High"],
+        medium_count=p_counts["Medium"],
+        low_count=p_counts["Low"],
+        paused_count=p_counts["Paused"],
     )
 
-    briefing = None
-    generated_at = None
-
+    briefing, generated_at = None, None
     if with_ai:
         if _portfolio_briefing_cache is None:
-            kpi_dict = kpis.model_dump()
-            _portfolio_briefing_cache = generate_portfolio_briefing(_accounts, kpi_dict)
+            _portfolio_briefing_cache = generate_portfolio_briefing(_accounts, kpis.model_dump())
             _portfolio_briefing_time = datetime.utcnow()
-        briefing = _portfolio_briefing_cache
-        generated_at = _portfolio_briefing_time
+        briefing, generated_at = _portfolio_briefing_cache, _portfolio_briefing_time
 
     return PortfolioSummary(kpis=kpis, briefing=briefing, generated_at=generated_at)
 
@@ -228,9 +227,7 @@ async def record_decision(
     body: DecisionCreate,
     current_user: str = Depends(get_current_user),
 ):
-    """Record a decision / action taken on an account."""
     _get_account_or_404(account_id)
-
     decision = {
         "id": str(uuid.uuid4()),
         "account_id": account_id,
@@ -248,15 +245,18 @@ async def record_decision(
 
 @app.get("/health")
 async def health_check():
-    return {"status": "ok", "accounts_loaded": len(_accounts)}
+    return {
+        "status": "ok",
+        "accounts_loaded": len(_accounts),
+        "ai_analyses_cached": len(_ai_cache),
+    }
 
 
 @app.get("/filters/options")
 async def filter_options(current_user: str = Depends(get_current_user)):
-    """Return distinct values for filter dropdowns."""
     return {
-        "regions": sorted({a.get("region") for a in _accounts if a.get("region")}),
-        "segments": sorted({a.get("segment") for a in _accounts if a.get("segment")}),
+        "regions":          sorted({a.get("region")         for a in _accounts if a.get("region")}),
+        "segments":         sorted({a.get("segment")        for a in _accounts if a.get("segment")}),
         "lifecycle_stages": sorted({a.get("lifecycle_stage") for a in _accounts if a.get("lifecycle_stage")}),
         "owners": sorted({
             name
