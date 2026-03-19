@@ -18,37 +18,25 @@ Before starting, make sure you have:
 
 ## Part 1 — Deploy the Backend to Render
 
-### 1.1 Create a new Web Service
+The repo contains a `render.yaml` Blueprint file that pre-fills all the
+configuration for you — no form-filling required.
 
-1. Go to https://dashboard.render.com and click **New → Web Service**
-2. Click **Connect a repository** and authorise Render to access your GitHub account
-3. Select the `Tenzing-AI-v1` repository
-4. Click **Connect**
+### 1.1 Use the Blueprint (recommended)
 
-### 1.2 Configure the service
-
-Fill in the form as follows:
-
-| Field | Value |
-|---|---|
-| **Name** | `tenzing-ai-backend` (or any name you like) |
-| **Region** | Frankfurt EU (or closest to you) |
-| **Branch** | `claude/account-prioritization-tool-J6H74` |
-| **Root Directory** | `backend` |
-| **Runtime** | Python 3 |
-| **Build Command** | `pip install -r requirements.txt` |
-| **Start Command** | `uvicorn main:app --host 0.0.0.0 --port $PORT` |
-| **Instance Type** | Free |
-
-### 1.3 Add the environment variable
-
-Before clicking **Create Web Service**, scroll down to **Environment Variables** and add:
+1. Go to https://dashboard.render.com and click **New → Blueprint**
+2. Connect your GitHub account if prompted, then select the `Tenzing-AI-v1` repo
+3. Render reads `render.yaml` and shows you the service it will create — click **Apply**
+4. You'll be prompted for the one secret value:
 
 | Key | Value |
 |---|---|
 | `ANTHROPIC_API_KEY` | `sk-ant-...` (your actual key) |
 
-Click **Create Web Service**.
+5. Click **Apply** to start the deploy.
+
+> **Why this is better:** All service settings (name, build command, start command,
+> Python version, root directory) are now in the repo. Redeploying from scratch takes
+> 30 seconds instead of re-filling a form.
 
 ### 1.4 Wait for the first deploy
 
