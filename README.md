@@ -193,7 +193,8 @@ Briefing is cached in memory — regenerated only on explicit request.
 | `POST` | `/auth/login` | OAuth2 form login |
 | `POST` | `/auth/login/json` | JSON body login |
 | `GET` | `/accounts` | List all accounts (sorted by priority). Filter: `region`, `segment`, `lifecycle_stage`, `owner` |
-| `GET` | `/accounts/{id}` | Full account detail. Pass `?with_ai=true` for Claude analysis |
+| `GET` | `/accounts/{id}` | Full account detail (structured signals + recorded decisions) |
+| `GET` | `/accounts/{id}/analysis` | AI analysis for a single account (cached). Pass `?refresh=true` to force a new Claude call |
 | `GET` | `/portfolio/summary` | KPIs. Pass `?with_ai=true` for leadership briefing |
 | `POST` | `/accounts/{id}/decisions` | Record a decision on an account |
 | `GET` | `/filters/options` | Distinct values for filter dropdowns |
