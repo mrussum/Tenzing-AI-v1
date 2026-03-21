@@ -8,3 +8,8 @@ anthropic==0.49.0
 python-multipart==0.0.9
 pydantic==2.7.1
 python-dotenv==1.0.1
+slowapi==0.1.9
+limits==3.13.0
+sqlalchemy==2.0.36
+psycopg2-binary==2.9.10
+alembic==1.13.3

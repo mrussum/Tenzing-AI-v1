@@ -4,15 +4,7 @@ const BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
 export const api = axios.create({
   baseURL: BASE_URL,
-})
-
-// Attach JWT on every request
-api.interceptors.request.use((config) => {
-  const token = getToken()
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
+  withCredentials: true, // send HttpOnly cookie on every request
 })
 
 // Redirect to login on 401
@@ -20,17 +12,11 @@ api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
-      removeToken()
       window.location.href = '/login'
     }
     return Promise.reject(err)
   }
 )
-
-const TOKEN_KEY = 'tenzing_token'
-export const getToken = () => localStorage.getItem(TOKEN_KEY)
-export const setToken = (t: string) => localStorage.setItem(TOKEN_KEY, t)
-export const removeToken = () => localStorage.removeItem(TOKEN_KEY)
 
 // ---------------------------------------------------------------------------
 // Types (mirrors backend Pydantic models)
@@ -145,7 +131,13 @@ export interface FilterOptions {
 // ---------------------------------------------------------------------------
 
 export const authLogin = (username: string, password: string) =>
-  api.post<{ access_token: string }>('/auth/login/json', { username, password })
+  api.post<{ ok: boolean }>('/auth/login/json', { username, password })
+
+export const authLogout = () =>
+  api.post('/auth/logout')
+
+export const fetchCurrentUser = () =>
+  api.get<{ username: string }>('/auth/me').then((r) => r.data)
 
 export const fetchAccounts = (params?: {
   region?: string

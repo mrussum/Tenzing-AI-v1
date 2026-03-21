@@ -115,7 +115,7 @@ def analyse_account(acc: dict) -> AIAnalysis:
             priority=acc.get("priority", "Medium"),
             priority_reasoning="AI response could not be parsed.",
             confidence="Low",
-            error=f"JSON parse error: {e}",
+            error="AI response parsing failed.",
             raw_response=raw if "raw" in dir() else None,
         )
     except Exception as e:
@@ -124,7 +124,7 @@ def analyse_account(acc: dict) -> AIAnalysis:
             priority=acc.get("priority", "Medium"),
             priority_reasoning="AI analysis failed.",
             confidence="Low",
-            error=str(e),
+            error="AI analysis unavailable.",
         )
 
 
@@ -211,4 +211,4 @@ def generate_portfolio_briefing(accounts: list[dict], kpis: dict) -> str:
         return message.content[0].text.strip()
     except Exception as e:
         logger.error("Portfolio briefing error: %s", e)
-        return f"Portfolio briefing generation failed: {e}"
+        return "Portfolio briefing generation failed. Please try again later."
