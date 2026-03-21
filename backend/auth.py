@@ -18,7 +18,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8 hours for demo
 DEMO_USERS = {
     "admin": {
         "username": "admin",
-        "hashed_password": "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",  # "tenzing2024"
+        "hashed_password": "$2b$12$d4FOBugCQeiltlfgq8h3xeHg/0KfSO/dNcCpk/NsbLjsjnVO21ZMG",  # "tenzing2024"
     }
 }
 
