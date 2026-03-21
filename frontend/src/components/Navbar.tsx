@@ -1,12 +1,12 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { removeToken } from '../api/client'
+import { authLogout } from '../api/client'
 
 export default function Navbar() {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const handleLogout = () => {
-    removeToken()
+  const handleLogout = async () => {
+    await authLogout().catch(() => {})
     navigate('/login')
   }
 

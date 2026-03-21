@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { authLogin, setToken } from '../api/client'
+import { authLogin } from '../api/client'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -14,8 +14,8 @@ export default function Login() {
     setError('')
     setLoading(true)
     try {
-      const res = await authLogin(username, password)
-      setToken(res.data.access_token)
+      await authLogin(username, password)
+      // Cookie is set by the server; just navigate to the app
       navigate('/')
     } catch (err: any) {
       setError(err.response?.data?.detail ?? 'Login failed — check credentials')
