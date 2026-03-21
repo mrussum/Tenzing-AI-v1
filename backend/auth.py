@@ -1,4 +1,5 @@
 """JWT authentication helpers."""
+import os
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -8,10 +9,12 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 # ---------------------------------------------------------------------------
-# Configuration (demo — hardcoded)
+# Configuration
 # ---------------------------------------------------------------------------
 
-SECRET_KEY = "tenzing-demo-secret-key-change-in-production-2024"
+SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("JWT_SECRET_KEY environment variable is not set")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8 hours for demo
 

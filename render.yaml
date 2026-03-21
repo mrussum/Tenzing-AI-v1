@@ -10,4 +10,6 @@ services:
         value: "3.11.0"
       - key: ANTHROPIC_API_KEY
         sync: false          # marks it as a secret — Render will prompt you to paste the value
+      - key: JWT_SECRET_KEY
+        sync: false          # generate with: python3 -c "import secrets; print(secrets.token_hex(32))"
     autoDeploy: true
