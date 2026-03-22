@@ -1,9 +1,7 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { authLogin } from '../api/client'
 
 export default function Login() {
-  const navigate = useNavigate()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -15,7 +13,7 @@ export default function Login() {
     setLoading(true)
     try {
       await authLogin(username, password)
-      navigate('/')
+      window.location.href = '/'
     } catch (err: any) {
       setError(err.response?.data?.detail ?? 'Login failed — check credentials')
     } finally {
