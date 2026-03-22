@@ -91,12 +91,18 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-_raw_origins = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000")
+_raw_origins = os.environ.get("ALLOWED_ORIGINS", "").strip()
 _allowed_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+# If no explicit list is configured, fall back to localhost for local dev.
+# allow_origin_regex additionally accepts any HTTPS origin (Vercel, custom domains)
+# so the deployed frontend works without needing to hardcode its URL.
+if not _allowed_origins:
+    _allowed_origins = ["http://localhost:5173", "http://localhost:3000"]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,
+    allow_origin_regex=r"https://.*",
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
