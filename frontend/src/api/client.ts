@@ -4,7 +4,13 @@ const BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
 export const api = axios.create({
   baseURL: BASE_URL,
-  withCredentials: true, // send HttpOnly cookie on every request
+})
+
+// Attach JWT from localStorage to every request
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('access_token')
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  return config
 })
 
 // Redirect to login on 401
@@ -12,6 +18,7 @@ api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
+      localStorage.removeItem('access_token')
       window.location.href = '/login'
     }
     return Promise.reject(err)
@@ -130,11 +137,19 @@ export interface FilterOptions {
 // API calls
 // ---------------------------------------------------------------------------
 
-export const authLogin = (username: string, password: string) =>
-  api.post<{ ok: boolean }>('/auth/login/json', { username, password })
+export const authLogin = async (username: string, password: string) => {
+  const res = await api.post<{ access_token: string; token_type: string }>(
+    '/auth/login/json',
+    { username, password }
+  )
+  localStorage.setItem('access_token', res.data.access_token)
+  return res
+}
 
-export const authLogout = () =>
-  api.post('/auth/logout')
+export const authLogout = () => {
+  localStorage.removeItem('access_token')
+  return api.post('/auth/logout')
+}
 
 export const fetchCurrentUser = () =>
   api.get<{ username: string }>('/auth/me').then((r) => r.data)

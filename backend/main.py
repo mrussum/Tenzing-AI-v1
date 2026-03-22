@@ -91,19 +91,10 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-_raw_origins = os.environ.get("ALLOWED_ORIGINS", "").strip()
-_allowed_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
-# If no explicit list is configured, fall back to localhost for local dev.
-# allow_origin_regex additionally accepts any HTTPS origin (Vercel, custom domains)
-# so the deployed frontend works without needing to hardcode its URL.
-if not _allowed_origins:
-    _allowed_origins = ["http://localhost:5173", "http://localhost:3000"]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_allowed_origins,
-    allow_origin_regex=r"https://.*",
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )
@@ -147,26 +138,17 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
 
 @app.post("/auth/login/json")
 @limiter.limit(LOGIN_RATE_LIMIT)
-async def login_json(request: Request, body: LoginRequest, response: Response):
-    """JSON-body login for the React frontend. Sets an HttpOnly cookie."""
+async def login_json(request: Request, body: LoginRequest):
+    """JSON-body login for the React frontend. Returns JWT in response body."""
     user = authenticate_user(body.username, body.password)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect username or password")
     token = create_access_token({"sub": user["username"]})
-    response.set_cookie(
-        key="access_token",
-        value=token,
-        httponly=True,
-        secure=True,
-        samesite="none",
-        max_age=480 * 60,  # matches ACCESS_TOKEN_EXPIRE_MINUTES in auth.py
-    )
-    return {"ok": True}
+    return {"access_token": token, "token_type": "bearer"}
 
 
 @app.post("/auth/logout")
-async def logout(response: Response):
-    response.delete_cookie(key="access_token", samesite="none", secure=True)
+async def logout():
     return {"ok": True}
 
 
