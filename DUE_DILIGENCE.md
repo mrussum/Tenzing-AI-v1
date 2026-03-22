@@ -10,7 +10,7 @@ Each requirement cites the exact file(s) and component(s) that satisfy it.
 
 | # | Requirement | Status | How & Where |
 |---|---|---|---|
-| 1.1 | **Include authentication** | ✅ Met | JWT-based auth. `backend/auth.py` — `authenticate_user`, `create_access_token`, `get_current_user`. Login page at `frontend/src/pages/Login.tsx`. Every API endpoint is protected via `Depends(get_current_user)`. Credentials: `admin / tenzing2024`. |
+| 1.1 | **Include authentication** | ✅ Met | JWT-based auth. `backend/auth.py` — `authenticate_user`, `create_access_token`, `get_current_user`. Login page at `frontend/src/pages/Login.tsx`. Every API endpoint is protected via `Depends(get_current_user)`. Credentials: `admin / tenzing2026`. |
 | 1.2 | **Use the provided dataset** | ✅ Met | `data/account_prioritisation_challenge_data.csv` is the sole data source. Loaded and parsed in `backend/data_loader.py`. No synthetic data is injected — all 60 records come from the CSV. |
 | 1.3 | **Integrate an AI API** | ✅ Met | Anthropic Claude Sonnet 4 (`claude-sonnet-4-20250514`) via the official Python SDK. Per-account analysis in `backend/ai_service.py → analyse_account()`. Portfolio briefing in `ai_service.py → generate_portfolio_briefing()`. Model constant defined at line 16 of `ai_service.py`. |
 | 1.4 | **Tackle the prioritisation of accounts directly** | ✅ Met | Four-tier priority (Critical / High / Medium / Low / Paused) assigned deterministically per account. Rules in `backend/scoring.py → assign_priority()`. Accounts sorted by priority → risk score → ARR in `scoring.py → sort_accounts()`. Priority is the primary organising principle of the entire UI. |

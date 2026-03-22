@@ -78,7 +78,7 @@ export default function Login() {
         </form>
 
         <p className="text-center text-xs text-gray-400 mt-6">
-          Demo credentials: <span className="font-mono">admin / tenzing2024</span>
+          Demo credentials: <span className="font-mono">admin / tenzing2026</span>
         </p>
       </div>
     </div>

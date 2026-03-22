@@ -71,7 +71,7 @@ npm run dev
 | Field    | Value        |
 |----------|-------------|
 | Username | `admin`      |
-| Password | `tenzing2024`|
+| Password | `tenzing2026`|
 
 ---
 

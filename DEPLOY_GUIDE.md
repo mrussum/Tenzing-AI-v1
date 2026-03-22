@@ -115,7 +115,7 @@ https://tenzing-ai-v1.vercel.app
 ### 2.5 Test the full app
 
 1. Open the Vercel URL
-2. Log in with `admin` / `tenzing2024`
+2. Log in with `admin` / `tenzing2026`
 3. Confirm the portfolio table loads with 60 accounts
 4. Click any account and click **Generate AI Analysis**
 5. Go to **Leadership Brief** and click **Generate AI Briefing**
@@ -166,7 +166,7 @@ Adjust the URLs to match yours.
 
 Add a short note:
 ```
-Login: admin / tenzing2024
+Login: admin / tenzing2026
 ```
 
 ---
