@@ -35,12 +35,21 @@ def _build_account_context(acc: dict) -> str:
 ACCOUNT_SYSTEM_PROMPT = """You are a B2B SaaS account intelligence system for a private equity portfolio company.
 Your role is to analyse account signals and produce clear, defensible, data-driven assessments.
 Always cite specific numbers from the data. Never hallucinate data points that are not present.
-If key data is missing, acknowledge the gap rather than guessing."""
+If key data is missing, acknowledge the gap rather than guessing.
+You are provided the deterministic priority label. You must use exactly this label in your response.
+Never reassign or modify the priority label."""
 
 ACCOUNT_USER_TEMPLATE = """Analyse this B2B SaaS account and produce a JSON response.
 
 ACCOUNT DATA:
 {context}
+
+DETERMINISTIC PRIORITY (do not override):
+The scoring engine has classified this account as: {deterministic_priority}
+This label was assigned by explicit rules based on risk score, contraction risk,
+renewal timeline, and sentiment signals.
+Your role is to EXPLAIN and EXTEND this classification — not reassign it.
+Do not return a different priority value.
 
 INSTRUCTIONS:
 - priority must be one of: "Critical", "High", "Medium", "Low"
@@ -58,9 +67,11 @@ Return ONLY valid JSON. No markdown. No preamble. No trailing text."""
 
 def analyse_account(acc: dict) -> AIAnalysis:
     """Call Claude to produce per-account priority + reasoning + actions."""
+    deterministic_priority = acc.get("priority", "Medium")
+
     if not os.environ.get("ANTHROPIC_API_KEY"):
         return AIAnalysis(
-            priority=acc.get("priority", "Medium"),
+            priority=deterministic_priority,
             priority_reasoning="AI analysis unavailable — ANTHROPIC_API_KEY not configured.",
             confidence="Low",
             error="ANTHROPIC_API_KEY not set",
@@ -75,7 +86,10 @@ def analyse_account(acc: dict) -> AIAnalysis:
     )
     qualifier = "\nNote: All qualitative note fields are null for this account — state 'insufficient qualitative data' for sentiment-based assessments.\n" if missing_notes else ""
 
-    user_prompt = ACCOUNT_USER_TEMPLATE.format(context=context) + qualifier
+    user_prompt = ACCOUNT_USER_TEMPLATE.format(
+        context=context,
+        deterministic_priority=deterministic_priority,
+    ) + qualifier
 
     try:
         client = _get_client()
@@ -99,32 +113,36 @@ def analyse_account(acc: dict) -> AIAnalysis:
         opps = [AIOpportunity(**o) if isinstance(o, dict) else AIOpportunity(opportunity=str(o), evidence="") for o in data.get("top_opportunities", [])]
         actions = [AIAction(**a) if isinstance(a, dict) else AIAction(action=str(a), owner="CSM") for a in data.get("recommended_actions", [])]
 
+        # Deterministic priority is the source of truth — AI cannot override it
         return AIAnalysis(
-            priority=data.get("priority", acc.get("priority", "Medium")),
+            priority=deterministic_priority,  # enforced — not from Claude
             priority_reasoning=data.get("priority_reasoning", ""),
             top_risks=risks,
             top_opportunities=opps,
             recommended_actions=actions,
             confidence=data.get("confidence", acc.get("confidence", "Medium")),
             raw_response=raw,
+            prompt_version="1.1",
         )
 
     except json.JSONDecodeError as e:
         logger.error("JSON parse error for %s: %s", acc.get("account_id"), e)
         return AIAnalysis(
-            priority=acc.get("priority", "Medium"),
+            priority=deterministic_priority,
             priority_reasoning="AI response could not be parsed.",
             confidence="Low",
             error="AI response parsing failed.",
             raw_response=raw if "raw" in dir() else None,
+            prompt_version="1.1",
         )
     except Exception as e:
         logger.error("AI error for %s: %s", acc.get("account_id"), e)
         return AIAnalysis(
-            priority=acc.get("priority", "Medium"),
+            priority=deterministic_priority,
             priority_reasoning="AI analysis failed.",
             confidence="Low",
             error="AI analysis unavailable.",
+            prompt_version="1.1",
         )
 
 

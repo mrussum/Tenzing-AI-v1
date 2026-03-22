@@ -15,9 +15,19 @@ The most important architectural decision was treating the scoring layer and the
 
 This split also controls cost. Sixty API calls per page load would be unacceptable in a production prototype; one per account on demand is fine.
 
-### In-memory state as a deliberate choice
+### Persistent storage with SQLite/PostgreSQL
 
-The brief specified "no database required." Rather than adding SQLite as a crutch, the prototype embraces in-memory state explicitly: the CSV is loaded and enriched once on startup, AI analyses are cached in a dict keyed by `account_id`, and decisions are stored in a list per account. The trade-off is that restarts clear the cache — acceptable for a prototype, and noted as a "build next" item.
+The system uses PostgreSQL in production (Render) and SQLite locally, managed via SQLAlchemy and Alembic. AI analysis results and decision records are persisted to the database so they survive redeploys and server restarts. This is a more production-ready choice than in-memory state — decisions recorded by a CSM remain visible after the next deploy, and AI analyses do not need to be regenerated from scratch on every restart.
+
+The trade-off is one additional environment variable (`DATABASE_URL`) for local setup, which is fully mitigated by the SQLite fallback: if `DATABASE_URL` is not set, the app automatically uses a local `decisions.db` file. No configuration is required for local development beyond copying `.env.example`.
+
+### AI analysis pre-warming for high-priority accounts
+
+Critical and High priority accounts have their AI analysis pre-computed in a background task at startup. This means that when a CSM or leadership user opens any Critical or High account, the AI panel loads immediately (from the database cache) rather than requiring a 3-5 second wait.
+
+Medium and Low accounts are analysed lazily on first request. This is a deliberate UX decision: the accounts that matter most to leadership should be instantly accessible; the rest can tolerate a one-time wait.
+
+A 1.5-second delay is introduced between pre-warm calls to avoid Anthropic API rate limits.
 
 ### Single CSV as source of truth
 
@@ -109,6 +119,31 @@ Claude does not produce the priority label in isolation. The deterministic score
 | Two data points for MRR trend | Using only current and 3-month-ago MRR means a single anomalous month can create a misleading trend. More granular monthly data would improve this signal significantly. |
 | Portfolio briefing cache | The briefing is generated once per server process. Stale if accounts change. A `POST /portfolio/briefing/refresh` endpoint would address this. |
 | No email / Slack notifications | Leadership would benefit from push alerts when accounts cross into Critical. This was out of scope but is the highest-impact "build next" item. |
+| CORS origin restriction | Explicit allowed-origins list prevents cross-origin abuse. Small operational cost: must set ALLOWED_ORIGINS env var on deploy. |
+| AI pre-warming for Critical/High | Eliminates demo friction for the most important accounts. Trade-off: 1.5s/account startup overhead and API credits consumed proactively. |
+| Priority override prevention | Deterministic label enforced in code after AI response. AI cannot silently reassign a Critical account to Low. Cost: slight prompt verbosity. |
+
+---
+
+## 6. Test Coverage
+
+The scoring engine — the most critical and failure-prone component — has
+full unit test coverage across all score components and priority assignment
+rules. Tests are written without any external dependencies; they call the
+scoring functions directly with controlled inputs.
+
+Key test scenarios include:
+- All-null field accounts (no crashes, sensible defaults)
+- Paused accounts never assigned Critical label
+- Priority threshold boundary conditions (e.g. exactly 60 days to renewal)
+- Every risk and opportunity signal isolated and verified independently
+
+AI service tests mock the Anthropic client entirely. No real API calls
+are made during testing. Tests verify prompt construction (deterministic
+priority enforcement, null note qualifier), JSON parse error handling,
+and API failure graceful degradation.
+
+Run the suite with: `cd backend && pytest tests/ -v`
 
 ---
 

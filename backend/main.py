@@ -1,4 +1,5 @@
 """FastAPI application — account prioritisation tool."""
+import asyncio
 import json
 import logging
 import os
@@ -91,10 +92,14 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# Read allowed origins from environment — defaults to localhost for dev
+_raw_origins = os.environ.get("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173")
+ALLOWED_ORIGINS = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )
@@ -109,6 +114,52 @@ async def security_headers(request: Request, call_next) -> Response:
     return response
 
 
+async def _prewarm_ai_analyses(db_session_factory):
+    """Pre-compute AI analysis for Critical and High accounts at startup.
+    Runs in background — does not block app startup.
+    Low priority accounts are analysed lazily on first user request.
+    """
+    priority_accounts = [
+        a for a in _accounts
+        if a.get("priority") in ("Critical", "High")
+    ]
+    logger.info(
+        "Pre-warming AI analysis for %d Critical/High accounts...",
+        len(priority_accounts)
+    )
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        for acc in priority_accounts:
+            account_id = acc.get("account_id")
+            # Skip if already cached
+            from db_models import DBAIAnalysisCache
+            existing = db.query(DBAIAnalysisCache).filter_by(
+                account_id=account_id
+            ).first()
+            if existing:
+                continue
+            try:
+                from ai_service import analyse_account
+                analysis = analyse_account(acc)
+                payload = analysis.model_dump_json()
+                db.add(DBAIAnalysisCache(
+                    account_id=account_id,
+                    payload=payload,
+                    created_at=datetime.utcnow()
+                ))
+                db.commit()
+                logger.info("Pre-warmed analysis for %s (%s)",
+                           acc.get("account_name"), acc.get("priority"))
+                # Small delay to avoid rate limiting
+                await asyncio.sleep(1.5)
+            except Exception as e:
+                logger.warning("Pre-warm failed for %s: %s", account_id, e)
+    finally:
+        db.close()
+    logger.info("AI pre-warm complete")
+
+
 @app.on_event("startup")
 async def startup_event():
     global _accounts
@@ -117,6 +168,14 @@ async def startup_event():
     logger.info("Loading and scoring accounts...")
     _accounts = _load_and_enrich()
     logger.info("Loaded %d accounts", len(_accounts))
+
+    # Pre-warm AI for Critical/High accounts in background
+    # Only if API key is present — skip silently otherwise
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        asyncio.create_task(_prewarm_ai_analyses(None))
+        logger.info("AI pre-warm task scheduled for Critical/High accounts")
+    else:
+        logger.warning("ANTHROPIC_API_KEY not set — AI pre-warm skipped")
 
 
 # ---------------------------------------------------------------------------

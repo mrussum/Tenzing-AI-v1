@@ -43,9 +43,10 @@ python -m venv venv
 source venv/bin/activate      # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
-# Set your API key
+# Copy and edit environment variables
 cp .env.example .env
-echo "ANTHROPIC_API_KEY=sk-ant-..." >> .env
+# Edit .env — set ANTHROPIC_API_KEY, JWT_SECRET_KEY, and optionally DATABASE_URL
+# DATABASE_URL is optional — defaults to SQLite (./decisions.db) for local dev
 
 uvicorn main:app --reload --port 8000
 ```
@@ -72,6 +73,19 @@ npm run dev
 |----------|-------------|
 | Username | `admin`      |
 | Password | `tenzing2026`|
+
+### Troubleshooting
+
+**App crashes immediately on startup**
+Most likely cause: `JWT_SECRET_KEY` not set. Add it to `.env`.
+
+**AI panels show "unavailable"**
+Expected if `ANTHROPIC_API_KEY` is not set. All deterministic scoring and
+account data still works. Add your key to `.env` to enable AI features.
+
+**Database errors on startup**
+The app defaults to SQLite locally. If you see SQLAlchemy errors, delete
+`backend/decisions.db` and restart — the file will be recreated cleanly.
 
 ---
 
@@ -224,7 +238,11 @@ Briefing is cached in memory — regenerated only on explicit request.
 1. Connect repo → New Web Service
 2. Build: `pip install -r backend/requirements.txt`
 3. Start: `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
-4. Env var: `ANTHROPIC_API_KEY`
+4. Required env vars:
+   - `ANTHROPIC_API_KEY` — your Anthropic API key
+   - `JWT_SECRET_KEY` — a long random string (e.g. `openssl rand -hex 32`)
+   - `DATABASE_URL` — your PostgreSQL connection string (from Render PostgreSQL add-on)
+   - `ALLOWED_ORIGINS` — your deployed Vercel frontend URL (e.g. `https://your-app.vercel.app`)
 
 ### Vercel (frontend)
 

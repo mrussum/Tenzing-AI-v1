@@ -63,6 +63,7 @@ class AIAnalysis(BaseModel):
     confidence: str = "Medium"                 # High | Medium | Low
     raw_response: Optional[str] = None
     error: Optional[str] = None
+    prompt_version: str = "1.1"
 
 
 # ---------------------------------------------------------------------------
