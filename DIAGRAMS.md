@@ -76,7 +76,7 @@ flowchart LR
         MEM --> CTX["Build JSON context\n(all signals + notes)"]
         CTX --> CL["Claude Sonnet 4"]
         CL --> AIA["AIAnalysis\npriority · reasoning\nrisks · opportunities · actions"]
-        AIA --> CACHE["_ai_cache\ndict keyed by account_id"]
+        AIA --> CACHE["PostgreSQL\nDBAIAnalysisCache\nkeyed by account_id"]
     end
 
     MEM   --> UI["React Frontend"]
@@ -141,7 +141,7 @@ sequenceDiagram
     participant U  as User
     participant FE as Frontend (React)
     participant BE as Backend (FastAPI)
-    participant CA as _ai_cache
+    participant CA as PostgreSQL (DBAIAnalysisCache)
     participant CL as Claude Sonnet 4
 
     Note over U,FE: User opens account detail page
@@ -154,7 +154,7 @@ sequenceDiagram
     U  ->> FE: Click "Generate AI Analysis"
     FE ->> BE: GET /accounts/ACC-001/analysis
 
-    BE ->> CA: Check _ai_cache["ACC-001"]
+    BE ->> CA: Check ai_analysis_cache WHERE account_id = "ACC-001"
 
     alt Cache hit (subsequent visits)
         CA -->> BE: Cached AIAnalysis
@@ -162,7 +162,7 @@ sequenceDiagram
     else Cache miss (first request)
         BE ->> CL: messages.create(system_prompt + account_context)
         CL -->> BE: JSON — priority, risks, opportunities, actions
-        BE ->> CA: Store AIAnalysis in _ai_cache["ACC-001"]
+        BE ->> CA: INSERT/UPDATE ai_analysis_cache for "ACC-001"
         BE -->> FE: AIAnalysis
     end
 
@@ -212,7 +212,7 @@ How the two deployed services connect to each other, the source repo, and the An
 
 ```mermaid
 graph TB
-    GH["GitHub\nmrussum/Tenzing-AI-v1\nbranch: claude/account-prioritization-tool-J6H74"]
+    GH["GitHub\nmrussum/Tenzing-AI-v1\nbranch: claude/upgrade-tenzing-ai-v2-paCUi"]
 
     subgraph Render["Render  (backend)"]
         BE["FastAPI · Python 3.11\nuvicorn\nrender.yaml Blueprint\nruntime.txt pins Python version"]

@@ -36,7 +36,7 @@ Each requirement cites the exact file(s) and component(s) that satisfy it.
 | # | Criterion | Status | How & Where |
 |---|---|---|---|
 | 3.1 | **Clarity and defensibility of prioritisation logic** | ✅ Met | Every priority decision cites ≥ 2 explicit signals. Rules are deterministic and readable prose in `scoring.py → assign_priority()`. Priority tiers are documented in `README.md` (lines 125–142) and explained in depth in `SUBMISSION.md` (Section 2). Weights are named constants at the top of `scoring.py`, not magic numbers. |
-| 3.2 | **Quality of AI integration and whether it improves decisions** | ✅ Met | AI is additive, not a replacement for deterministic scoring. Claude receives all account signals plus the deterministic priority as context, then synthesises qualitative notes with quantitative signals — something a formula cannot do. Per-account analysis (`/accounts/{id}/analysis`) is cached server-side (`_ai_cache` in `main.py`). Portfolio briefing identifies cross-account patterns. Explained in `SUBMISSION.md` Section 3. |
+| 3.2 | **Quality of AI integration and whether it improves decisions** | ✅ Met | AI is additive, not a replacement for deterministic scoring. Claude receives all account signals plus the deterministic priority as context, then synthesises qualitative notes with quantitative signals — something a formula cannot do. Per-account analysis (`/accounts/{id}/analysis`) is cached server-side in PostgreSQL (`DBAIAnalysisCache` table, persisted across restarts). Portfolio briefing identifies cross-account patterns. Explained in `SUBMISSION.md` Section 3. |
 | 3.3 | **Architecture decisions** | ✅ Met | Covered in `SUBMISSION.md` Section 1: deterministic/AI separation, lazy AI loading, in-memory state as a deliberate choice, single CSV as source of truth, dedicated `/analysis` endpoint design. `render.yaml` version-controls deployment config. `frontend/vercel.json` handles SPA routing. |
 | 3.4 | **Handling of imperfect operational data** | ✅ Met | Three-tier confidence scoring (High / Medium / Low) based on null field count per account — `backend/data_loader.py → _confidence()`. Displayed as a pill on every account card and detail page via `ConfidencePill.tsx`. Claude is explicitly instructed: "state 'insufficient qualitative data' — do not invent sentiment" (`ai_service.py` line 53). Accounts with all three note fields null trigger an additional prompt qualifier (lines 72-76). Paused accounts excluded from active scoring distribution. |
 | 3.5 | **Quality of reasoning explanations** | ✅ Met | Prompt engineering in `ai_service.py` `ACCOUNT_USER_TEMPLATE` (lines 40-56): priority_reasoning must cite ≥ 2 specific data points; each risk/opportunity must include evidence; actions must "name the signal, the ask, and why now". System prompt instructs Claude to "always cite specific numbers" and "never hallucinate data points". |
@@ -51,7 +51,7 @@ Each requirement cites the exact file(s) and component(s) that satisfy it.
 |---|---|---|
 | 4.1 | **Pixel-perfect design** | Tailwind CSS with a clean, functional design system. No custom CSS animations, no bespoke illustration work, no design system beyond what Tailwind provides. |
 | 4.2 | **Extensive data cleaning** | `data_loader.py` does lightweight type coercion and null handling in a single pass. No imputation, no outlier removal, no normalisation pipeline. |
-| 4.3 | **Production-hardening beyond reasonable scope** | In-memory state (no DB), single hardcoded user, `allow_origins=["*"]` CORS, no rate limiting, no audit logging. These are documented trade-offs, not oversights. |
+| 4.3 | **Production-hardening beyond reasonable scope** | Single hardcoded user, no audit logging. CORS is restricted via `ALLOWED_ORIGINS` env var; rate limiting is implemented (SlowAPI, 5 login attempts/minute). These are documented trade-offs, not oversights. |
 
 ---
 
@@ -81,12 +81,10 @@ Each requirement cites the exact file(s) and component(s) that satisfy it.
 
 ---
 
-## 7. One Outstanding Item
+## 7. Outstanding Items
 
-| Item | Action needed |
-|---|---|
-| **README.md API table** (line 196) still references `?with_ai=true` on `GET /accounts/{id}` | Minor inconsistency — this endpoint no longer returns AI data; that's now `GET /accounts/{id}/analysis`. Does not affect the app (frontend doesn't use this), but worth updating before sharing the repo. |
+All previously noted inconsistencies have been resolved. No outstanding documentation items remain.
 
 ---
 
-*Last updated: 2026-03-20. All code items verified against the current state of branch `claude/account-prioritization-tool-J6H74`.*
+*Last updated: 2026-03-22. All code items verified against the current state of branch `claude/upgrade-tenzing-ai-v2-paCUi`.*

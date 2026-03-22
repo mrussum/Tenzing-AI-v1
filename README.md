@@ -186,7 +186,7 @@ Generates a cross-account narrative identifying:
 4. Top 3 expansion opportunities with pipeline figures
 5. 3 portfolio-level recommended actions
 
-Briefing is cached in memory — regenerated only on explicit request.
+Briefing is cached in PostgreSQL — regenerated only on explicit request.
 
 ---
 
@@ -227,7 +227,7 @@ Briefing is cached in memory — regenerated only on explicit request.
 | Routing | React Router v6 |
 | Charts | Recharts (MRR trend indicators) |
 | HTTP client | Axios |
-| Storage | In-memory (no database required) |
+| Storage | In-memory accounts list + PostgreSQL/SQLite (decisions & AI cache via SQLAlchemy) |
 
 ---
 

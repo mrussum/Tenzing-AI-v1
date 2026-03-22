@@ -62,7 +62,7 @@ https://tenzing-ai-backend.onrender.com
 Open `https://tenzing-ai-backend.onrender.com/health` in your browser.
 You should see:
 ```json
-{"status": "ok", "accounts_loaded": 60, "ai_analyses_cached": 0}
+{"status": "ok"}
 ```
 
 If you see this, the backend is working.
@@ -135,7 +135,7 @@ If you see this, go back to your Render service → **Environment Variables** an
 
 | Key | Value |
 |---|---|
-| `ALLOWED_ORIGIN` | `https://tenzing-ai-v1.vercel.app` |
+| `ALLOWED_ORIGINS` | `https://tenzing-ai-v1.vercel.app` |
 
 The backend currently allows `*` (all origins), so this should not be needed.
 If it persists, check that `VITE_API_URL` has no trailing slash.

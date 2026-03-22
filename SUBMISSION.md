@@ -112,7 +112,7 @@ Claude does not produce the priority label in isolation. The deterministic score
 
 | Decision | Trade-off |
 |---|---|
-| In-memory state | Zero infrastructure complexity, but restarts clear AI analysis cache and recorded decisions. Acceptable for a prototype. |
+| In-memory state | The accounts list is held in memory and recomputed deterministically on each restart — zero infrastructure complexity. Decisions and AI analysis are persisted in PostgreSQL/SQLite and survive restarts. |
 | Lazy AI loading | Users must click to trigger AI analysis. Avoids unexpected latency/cost, but means the first account drill-down is slower than subsequent ones. |
 | Sigmoid normalisation | Scores are more spread across 0–100, improving visual discrimination. The sigmoid midpoints are calibrated heuristically — they would need validation against historical churn data in production. |
 | Deterministic priority rules | Fully explainable to non-technical stakeholders and auditable. But rules need manual updates as business conditions change; a logistic regression model trained on historical outcomes would be more adaptive. |
@@ -153,7 +153,7 @@ Run the suite with: `cd backend && pytest tests/ -v`
 
 1. **Push alerts** — webhook or email notification when an account transitions to Critical. This is the gap between "a dashboard you visit" and "a system that finds you."
 
-2. **Persistent storage** — swap the in-memory dict for SQLite or Postgres. Enables AI analysis history, decision audit trail, and score change tracking over time. Two days of work.
+2. **Score trend tracking** — store weekly snapshots of risk/opportunity/health scores and display trend arrows. An account that has moved from Low to High over 8 weeks is more alarming than one that was always High. Decisions and AI analyses are already persisted in PostgreSQL; the additional snapshot table is the next step.
 
 3. **Score trend tracking** — store weekly snapshots of risk/opportunity/health scores and display trend arrows. An account that has moved from Low to High over 8 weeks is more alarming than one that was always High.
 

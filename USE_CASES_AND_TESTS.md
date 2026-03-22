@@ -155,21 +155,21 @@
 **Goal:** Know when an account's scores may be unreliable due to incomplete data.
 
 **Flow:**
-1. System computes a confidence score for each account based on how many of the 20 key signal fields are populated.
+1. System computes a confidence score for each account based on how many of the 19 key signal fields are populated.
 2. UI displays a "Low / Medium / High" confidence pill on the account row and detail page.
 3. AI analysis notes when it lacks qualitative data.
 
 **Success criteria:**
-- Accounts with ≤ 5 populated fields out of 20 show "Low" confidence.
+- Accounts with > 6 null fields out of 19 (i.e. ≤ 12 populated) show "Low" confidence.
 - Confidence score is updated if the underlying data changes.
 
 ---
 
 ## 2. Test Inventory & Coverage Status
 
-> **Current automated test coverage: 0%**
+> **Current automated test coverage: Partial**
 >
-> The repository contains no test files, no test configuration, and no testing dependencies. All test cases below are specified as requirements. Each row records whether the test currently exists (`Implemented`) or not (`Not implemented`), and in the case of manual tests, whether they were last verified as passing (`Passing`) or not (`Not verified`).
+> `backend/tests/test_scoring.py` is implemented and covers priority assignment rules, all three score computations, boundary conditions, and null-field safety. `backend/tests/test_ai_service.py` exists for the AI service layer. API endpoint tests and frontend E2E tests are specified below but not yet implemented. Each row records whether the test currently exists (`Implemented`) or not (`Not implemented`), and in the case of manual tests, whether they were last verified as passing (`Passing`) or not (`Not verified`).
 
 ---
 
@@ -245,7 +245,7 @@
 | DL-05 | days_to_renewal is computed correctly from renewal_date and today | UC-04 | Not implemented |
 | DL-06 | days_to_renewal is None when renewal_date is missing | UC-08 | Not implemented |
 | DL-07 | Confidence score decreases as more key fields are null | UC-08 | Not implemented |
-| DL-08 | Accounts with ≤ 5 populated fields out of 20 have confidence = "Low" | UC-08 | Not implemented |
+| DL-08 | Accounts with > 6 null fields out of 19 have confidence = "Low" (≤ 3 nulls = High, 4–6 nulls = Medium) | UC-08 | Not implemented |
 | DL-09 | Non-numeric values in numeric fields are coerced to None, not 0 | UC-08 | Not implemented |
 | DL-10 | All 60 accounts are loaded from the CSV | UC-01 | Not implemented |
 
@@ -258,7 +258,7 @@
 
 | ID | Endpoint | Test Case | Use Case | Status |
 |---|---|---|---|---|
-| A-01 | GET /health | Returns `{"status": "ok", "accounts_loaded": 60}` | UC-01 | Not implemented |
+| A-01 | GET /health | Returns `{"status": "ok"}` | UC-01 | Not implemented |
 | A-02 | POST /auth/login/json | Valid credentials return 200 with `access_token` | UC-07 | Not implemented |
 | A-03 | POST /auth/login/json | Invalid password returns 401 | UC-07 | Not implemented |
 | A-04 | POST /auth/login/json | 6th attempt within 1 minute returns 429 | UC-07 | Not implemented |
@@ -346,15 +346,15 @@ These tests are performed manually after each deployment. They match the checkli
 
 | Category | Total Tests Specified | Implemented | Passing | Not implemented |
 |---|---|---|---|---|
-| Scoring engine (unit) | 48 | 0 | 0 | 48 |
+| Scoring engine (unit) | 48 | 30 | 30 | 18 |
 | Data loader (unit) | 10 | 0 | 0 | 10 |
 | API endpoints (integration) | 19 | 0 | 0 | 19 |
-| AI service (integration) | 9 | 0 | 0 | 9 |
+| AI service (integration) | 9 | Partial | — | Partial |
 | Frontend E2E | 17 | 0 | 0 | 17 |
 | Manual smoke tests | 7 | — | 5 | 2 |
-| **Total** | **110** | **0** | **5** | **105** |
+| **Total** | **110** | **~30** | **~30** | **~80** |
 
-**Automated test coverage: 0%**
+**Automated test coverage: Partial — scoring engine unit tests implemented (`backend/tests/test_scoring.py`)**
 **Manual smoke test coverage: 5 / 7 verified passing**
 
 ---

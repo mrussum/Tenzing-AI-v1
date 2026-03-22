@@ -59,13 +59,13 @@ Three fields are derived from raw CSV data before any scoring takes place (`back
 | `seat_utilisation` | `seats_used / seats_purchased` | Adoption proxy; both high and low extremes are signals |
 | `days_to_renewal` | `(renewal_date - today).days` | Renewal proximity pressure |
 
-A **confidence score** is also computed per account based on how many of the 20 key signal fields are populated. Accounts with sparse data surface a "Low confidence" indicator in the UI so users treat scores with appropriate scepticism.
+A **confidence score** is also computed per account based on how many of the 19 key signal fields are populated. Accounts with sparse data surface a "Low confidence" indicator in the UI so users treat scores with appropriate scepticism.
 
 ---
 
 ### 2.2 Risk Score
 
-The risk score reflects the probability and severity of churn or contraction. It aggregates 15 binary/threshold signals into a raw sum, then passes that sum through a sigmoid function to produce a 0–100 score.
+The risk score reflects the probability and severity of churn or contraction. It aggregates 16 binary/threshold signals into a raw sum, then passes that sum through a sigmoid function to produce a 0–100 score.
 
 **Signals and weights:**
 
@@ -162,7 +162,7 @@ Health uses a different pattern: a baseline of 50 with additive and subtractive 
 | Sentiment | Positive | +8 |
 | Sentiment | Negative | −12 |
 
-The result is clamped to [0, 100]. A perfectly healthy account with all positive signals can reach a theoretical maximum of 50 + 20 + 15 + 10 + 8 + 8 + 10 + 8 + 8 = 137, clamped to 100. This means the ceiling is realistically achievable, unlike a sigmoid score.
+The result is clamped to [0, 100]. A perfectly healthy account with all positive signals can reach a theoretical maximum of 50 + 20 (CSAT) + 15 (NPS) + 10 (usage) + 8 (tickets) + 8 (SLA) + 10 (MRR growing) + 8 (sentiment) = 129, clamped to 100. Note that MRR growing (+10) and MRR stable (+8) are mutually exclusive — only one fires. This means the ceiling is realistically achievable, unlike a sigmoid score.
 
 ---
 
