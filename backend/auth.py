@@ -20,7 +20,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8 hours for demo
 DEMO_USERS = {
     "admin": {
         "username": "admin",
-        "hashed_password": "$2b$12$d4FOBugCQeiltlfgq8h3xeHg/0KfSO/dNcCpk/NsbLjsjnVO21ZMG",
+        "hashed_password": "$2b$12$mvXADummfhg2.rgzJwBRAOtb4aCmpZve27C3gq9DVOYExR9Gr03lC",
     }
 }
 
@@ -48,14 +48,16 @@ def create_access_token(data: dict) -> str:
 
 
 def get_current_user(request: Request) -> str:
-    """Extract and validate JWT from the HttpOnly cookie."""
+    """Extract and validate JWT from the Authorization: Bearer header."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid or expired token",
+        headers={"WWW-Authenticate": "Bearer"},
     )
-    token = request.cookies.get("access_token")
-    if not token:
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
         raise credentials_exception
+    token = auth_header.split(" ", 1)[1]
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
