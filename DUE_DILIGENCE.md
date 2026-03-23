@@ -73,7 +73,7 @@ Each requirement cites the exact file(s) and component(s) that satisfy it.
 
 | # | Requirement | Status | How & Where |
 |---|---|---|---|
-| 6.1 | **60 synthetic account records used** | ✅ Met | `data_loader.py` loads all rows from `data/account_prioritisation_challenge_data.csv`. Health check at `GET /health` reports `accounts_loaded: 60`. |
+| 6.1 | **60 synthetic account records used** | ✅ Met | `data_loader.py` loads all rows from `data/account_prioritisation_challenge_data.csv`. Startup log emits `INFO: Loaded 60 accounts`. `GET /health` returns `{"status": "ok"}`. |
 | 6.2 | **Signals from accounts, leads, support, revenue, notes** | ✅ Met | All five signal domains consumed: account metadata (segment, region, lifecycle), lead signals (open_leads_count, avg_lead_score, last_lead_activity_date), support (open_tickets_count, urgent_open_tickets_count, sla_breaches_90d), revenue (arr_gbp, mrr_current/3m_ago, expansion_pipeline, contraction_risk, overdue_amount), notes (recent_support_summary, recent_customer_note, recent_sales_note, note_sentiment_hint). |
 | 6.3 | **May derive features** | ✅ Met | `data_loader.py` derives: `mrr_trend` (% change), `seat_utilisation` (seats_used / seats_purchased), `days_to_renewal` (from renewal_date), `null_field_count` (across 19 key signal fields). |
 | 6.4 | **Source data remains the basis** | ✅ Met | No synthetic enrichment, no external API calls for data. All scoring is derived from the CSV fields or features derived from them. |

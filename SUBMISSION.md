@@ -155,15 +155,13 @@ Run the suite with: `cd backend && pytest tests/ -v`
 
 2. **Score trend tracking** — store weekly snapshots of risk/opportunity/health scores and display trend arrows. An account that has moved from Low to High over 8 weeks is more alarming than one that was always High. Decisions and AI analyses are already persisted in PostgreSQL; the additional snapshot table is the next step.
 
-3. **Score trend tracking** — store weekly snapshots of risk/opportunity/health scores and display trend arrows. An account that has moved from Low to High over 8 weeks is more alarming than one that was always High.
+3. **Bulk AI analysis** — a background job that pre-warms the AI cache for the top 20 Critical/High accounts overnight, so analysts arrive to ready-to-read analyses each morning.
 
-4. **Bulk AI analysis** — a background job that pre-warms the AI cache for the top 20 Critical/High accounts overnight, so analysts arrive to ready-to-read analyses each morning.
+4. **Data validation layer** — currently, null fields are flagged but accepted. A validation layer would highlight accounts where data hasn't been updated in >90 days, prompting CRM hygiene.
 
-5. **Data validation layer** — currently, null fields are flagged but accepted. A validation layer would highlight accounts where data hasn't been updated in >90 days, prompting CRM hygiene.
+5. **Model feedback loop** — record which AI recommendations led to recorded decisions, and eventually use this signal to fine-tune the prompt or the scoring weights. The decision recorder is already in place as the data collection mechanism.
 
-6. **Model feedback loop** — record which AI recommendations led to recorded decisions, and eventually use this signal to fine-tune the prompt or the scoring weights. The decision recorder is already in place as the data collection mechanism.
-
-7. **Role-based access** — CSMs see their own accounts; Sales sees pipeline-relevant data; Leadership sees the full portfolio. The JWT infrastructure is already in place.
+6. **Role-based access** — CSMs see their own accounts; Sales sees pipeline-relevant data; Leadership sees the full portfolio. The JWT infrastructure is already in place.
 
 ---
 

@@ -137,7 +137,7 @@ If you see this, go back to your Render service → **Environment Variables** an
 |---|---|
 | `ALLOWED_ORIGINS` | `https://tenzing-ai-v1.vercel.app` |
 
-The backend currently allows `*` (all origins), so this should not be needed.
+The backend defaults to allowing `localhost:3000` and `localhost:5173`. Set `ALLOWED_ORIGINS` to your Vercel URL to permit the deployed frontend.
 If it persists, check that `VITE_API_URL` has no trailing slash.
 
 ---
